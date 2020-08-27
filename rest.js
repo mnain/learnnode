@@ -1,18 +1,47 @@
-const https = require('https');
 
-https.get('https://api.nasa.gov/planetary/apod?api_key=DEktqrOF2dPk2IwobyncTmgCoDX5JD51SfM2ozT7', (resp) => {
-  let data = '';
+var querystring = require('querystring');
+var https = require('https');
 
-  // A chunk of data has been recieved.
-  resp.on('data', (chunk) => {
-    data += chunk;
+var host = 'https://tms.govdelivery.com/messages/sms';
+var sessionId = null;
+var deckId = '68DC5A20-EE4F-11E2-A00C-0858C0D5C2ED';
+
+function performRequest(endpoint, method, data, success) {
+  var dataString = JSON.stringify(data);
+  var headers = {};
+  
+  if (method == 'GET') {
+    endpoint += '?' + querystring.stringify(data);
+  }
+  else {
+    headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': dataString.length
+    };
+  }
+  var options = {
+    host: host,
+    path: endpoint,
+    method: method,
+    headers: headers
+  };
+
+  var req = https.request(options, function(res) {
+    res.setEncoding('utf-8');
+
+    var responseString = '';
+
+    res.on('data', function(data) {
+      responseString += data;
+    });
+
+    res.on('end', function() {
+      console.log(responseString);
+      var responseObject = JSON.parse(responseString);
+      success(responseObject);
+    });
   });
 
-  // The whole response has been received. Print out the result.
-  resp.on('end', () => {
-    console.log(JSON.parse(data).explanation);
-  });
-
-}).on("error", (err) => {
-  console.log("Error: " + err.message);
-});
+  req.write(dataString);
+  req.end();
+}
